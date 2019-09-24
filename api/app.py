@@ -22,9 +22,9 @@ def grab_and_save():
     return jsonify({'msg': 'you need to post some data'})
 
 
-# @app.route()
-# def get_last_record():
-#     return
+@app.route("/last", methods=['GET'])
+def get_last_record():
+    return None
 
 
 if __name__ == '__main__':

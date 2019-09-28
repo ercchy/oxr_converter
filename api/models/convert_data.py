@@ -21,12 +21,6 @@ class ConvertData(db.Model):
     date_created = db.Column(DateTime(timezone=True), server_default=func.now())
     date_updated = db.Column(DateTime(timezone=True), server_default=func.now())
 
-    # def __init__(self, currency_code, requested_amount, oxr_price, final_amount):
-    #     currency_code = self.currency_code
-    #     requested_amount = self.requested_amount
-    #     oxr_price = self.oxr_price
-    #     final_amount = self.final_amount
-
 
     def __repr__(self):
         return f'<ID {self.id}>'

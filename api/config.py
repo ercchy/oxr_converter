@@ -1,19 +1,23 @@
-from pathlib import Path
+import os
+from os.path import abspath, dirname
 
 class Config:
-    __ROOT_PATH = Path(__file__).resolve().parent
+    __ROOT_PATH = dirname(dirname(abspath(__file__)))
     DEBUG = False
     TESTING = False
-    SECRET_KEY = b'D\x12\xeb\xe2b\xc3.\x94\xc7\xe4\x03\xb0\xffE\xbe\x10' # Change to a new KEY!
+    SECRET_KEY = os.environ.get('SECRET_KEY')
     ROOT_PATH = __ROOT_PATH
-    SQLALCHEMY_DATABASE_URI = f'sqlite:///{ROOT_PATH}/test.db' # SQLite, etc.
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///{}/zapo.db'.format(ROOT_PATH)) # SQLite, etc.
+    MIGRATION_DIR = os.path.join('api', 'migrations')
 
 class ProductionConfig(Config):
     DATABASE_URI = '' # MySQL, PostgreSQL, MariaDB, etc.
+    ENV = 'production'
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    DEVELOPMENT = True
+    SQLALCHEMY_TRACK_MODIFICATIONS = True
     SQLALCHEMY_RECORD_QUERIES = True
     ENV = 'development'
 

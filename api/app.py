@@ -1,9 +1,10 @@
 from flask import Flask
 from flask_migrate import Migrate
-from flask_redis import FlaskRedis
 
+from .utils import middleware
 from .config import *
 from .models.database import db, ma
+from .cache.redis import redis
 from .controllers import v1_routes, error_routes
 from .utils.request_utils import RequestFormatter
 
@@ -12,6 +13,7 @@ import logging
 # App init
 app = Flask(__name__)
 app.config.from_object(DevelopmentConfig)
+app.wsgi_app = middleware.LoggingMiddleware(app.wsgi_app)
 
 # Database and Marshmallow init
 # Marshmallow is a serializer
@@ -38,4 +40,4 @@ logger.addHandler(handler)
 # app.logger.addHandler(handler)
 
 # Redis
-redis_client = FlaskRedis(app)
+redis.init_app(app)

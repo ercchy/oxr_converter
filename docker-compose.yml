@@ -1,0 +1,71 @@
+version: "3.5"
+
+services:
+  api:
+    container_name: api
+    image: zapo/converter:latest
+    build: .
+    volumes:
+      - .:/opt/convert
+      - ./logs/uwsgi:/var/log/uwsgi
+      - ./logs/api:/var/log/api
+      - ./config/uwsgi/uwsgi.ini:/opt/convert/config/uwsgi/uwsgi.ini
+    ports:
+      - 8080:8080
+    links:
+      - db
+    env_file:
+      - .env
+    networks:
+      - converternet
+
+  db:
+    container_name: db
+    image: mysql:5.7
+    ports:
+      - 3306:3306
+    restart: always
+    environment:
+      MYSQL_USER: zapo
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: supersecret
+    volumes:
+      - ${PWD}/config/mysql/db_entrypoint.sh:/docker-entrypoint-initdb.d/db_entrypoint.sh
+      - ./db/data:/var/lib/mysql
+      - ./logs/mysql:/var/log/mysql
+    networks:
+      - converternet
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./logs/nginx:/var/log/converter
+    depends_on:
+      - api
+    ports:
+      - 80:80
+    networks:
+      - converternet
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    command: redis-server --appendonly yes
+    volumes:
+      - ./db/redis:/data
+      - ./config/redis/redis.conf:/etc/redis/redis.conf
+      - ./logs/redis:/var/log/converter
+#    depends_on:
+#      - api
+    ports:
+      - 6379:6379
+    networks:
+      - converternet
+
+
+networks:
+  converternet:
+   name: converternet
+   driver: bridge

@@ -1,0 +1,8 @@
+db/
+logs/
+config/
+.gitignore
+docker-compose.yml
+converter.ini
+Dockerfile
+README.md

@@ -10,7 +10,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///{}/zapo.db'.format(ROOT_PATH)) # SQLite, etc.
     MIGRATION_DIR = os.path.join('api', 'migrations')
     REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
-    LOG_FILE = os.environ.get('LOG_FILE', 'zapo.log')
+    LOG_FILE = os.environ.get('LOG_FILE', 'logs/api/zapo.log')
 
 class ProductionConfig(Config):
     DATABASE_URI = '' # MySQL, PostgreSQL, MariaDB, etc.

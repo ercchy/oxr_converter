@@ -1,14 +1,14 @@
 import simplejson as json
+
 from http import HTTPStatus
 
 from decimal import Decimal
 from flask import Blueprint, request, jsonify
-from sqlalchemy.exc import IntegrityError
 
 from ..cache.redis import redis
 from ..models.database import db
-from ..models.convert_data import ConvertData, convert_data_schema
-from ..utils.processors import get_oxr_price, validate_data, ConversionError, ValidationError
+from ..models.convert_data import ConvertData, converted_data_schema, converted_datas_schema
+from ..utils.processors import get_oxr_price, validate_data, ConversionError, validate_code_value, ValidationError
 
 from ..constants import OXR_REQUEST_URL, PRECISION
 
@@ -22,14 +22,19 @@ logger = logging.getLogger('werkzeug')
 def grab_and_save():
     request_body = request.get_json()
     request_id = request.environ['X_REQUEST_ID']
+    code = request_body.get('code', None)
+    amount = request_body.get('amount', None)
 
     try:
         # Validate and clean the input data
-        code, requested_amount = validate_data(request_body)
+        code, requested_amount = validate_data(code, amount)
+
         # Retrieve the price of the requested currency in USD
         oxr_price = get_oxr_price(url=OXR_REQUEST_URL, code=code)
+
         # Multiply the converted amount
         calculated_amount = Decimal(requested_amount/oxr_price).quantize(PRECISION, rounding='ROUND_UP')
+
     except ValidationError as err:
         return jsonify(sucess=False,
                        message="Validation failed. {}".format(err),
@@ -58,41 +63,82 @@ def grab_and_save():
     }
 
     converted_data = ConvertData(**data)
+
+    # TODO: Make this code asynchronous with usage of queue
     db.session.add(converted_data)
-
-    # TODO: Error handle
-    redis.set('{}:{}:{}'.format(code, request_id, 0), 0)
-    redis.hset(request_id, 'operation', json.dumps(data, use_decimal=True))
-
     try:
         db.session.commit()
-    except IntegrityError as err:
+    except Exception as err:
         logger.error('The object couldnt be added to the DB. {}'.format(err))
         return jsonify(sucess=False,
-                       message=str(err.orig),
-                       status=HTTPStatus.BAD_REQUEST.value,
-                       detatil=HTTPStatus.BAD_REQUEST.description,
-                       ), HTTPStatus.BAD_REQUEST
+                       message=str(err),
+                       status=HTTPStatus.INTERNAL_SERVER_ERROR.value,
+                       detail=HTTPStatus.INTERNAL_SERVER_ERROR.description
+                       ), HTTPStatus.INTERNAL_SERVER_ERROR
     finally:
-        return convert_data_schema.jsonify(converted_data), HTTPStatus.CREATED
+        return converted_data_schema.jsonify(data), HTTPStatus.CREATED
 
 
 @bp.route("/last", methods=['GET'])
 def get_last_record():
-    #TODO: validate code
-    #code = validate_data(code)
     args = request.args
-    code = args.get('code', None)
+    currency = args.get('currency', None)
     records = args.get('records', None)
 
-    if code and records:
-        ret_val = db.session.query(ConvertData).order_by('id desc').limit(records)
-    elif code:
-        ret_val = db.session.query(ConvertData).filter_by(currency_code=code).limit(1)
-    elif records:
-        ret_val = ConvertData.queryn.filter_by(currency_code=code).limit(records)
-    else:
-        ret_val = db.session.query(ConvertData).first()
-    import ipdb;ipdb.set_trace()
+    if currency:
 
-    return convert_data_schema.jsonify(ret_val)
+        try:
+            currency = validate_code_value(currency)
+
+        except (ValidationError, AssertionError) as err:
+            return jsonify(sucess=False,
+                           message='{}'.format(err),
+                           status=HTTPStatus.BAD_REQUEST.value,
+                           detail=HTTPStatus.BAD_REQUEST.description
+                           ), HTTPStatus.BAD_REQUEST
+
+    if records:
+
+        try:
+            records = int(records) - 1
+
+            assert records > 0, "Records needs to be an positive number"
+
+        except Exception as err:
+            return jsonify(sucess=False,
+                           message='{}'.format(err),
+                           status=HTTPStatus.BAD_REQUEST.value,
+                           detail=HTTPStatus.BAD_REQUEST.description
+                           ), HTTPStatus.BAD_REQUEST
+
+    operations = {}
+    operations['params'] = dict(currency=False, operations=False)
+    redis_key = 'operation'
+    redis_limit = 1
+    query_filter = {}
+
+
+    if currency and records:
+        operations['params'] = dict(currency=True, operations=True)
+        redis_key = currency
+        redis_limit = records - 1
+        query_filter = {'currency_code': currency}
+    elif currency:
+        operations['params'] = dict(currency=True, operations=False)
+        redis_key = currency
+        query_filter = {'currency_code': currency}
+    elif records:
+        operations['params'] = dict(currency=False, operations=True)
+        redis_limit = records - 1
+
+
+    # Get from Redis
+    redis_raw_data = redis.zrange(redis_key, 0, redis_limit, desc=True)
+    operations['data_from_redis'] = [eval(entry) for entry in redis_raw_data]
+
+    # Get from MySql
+    db_query = ConvertData.query.order_by(ConvertData.id.desc())
+    filtered_data = db_query.filter_by(**query_filter).limit(records).all()
+    operations['data_from_mysql'] = [entry.to_dict for entry in filtered_data]
+
+    return jsonify(operations)

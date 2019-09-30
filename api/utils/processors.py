@@ -1,10 +1,10 @@
 import json
 from decimal import Decimal, InvalidOperation
 
-from ..cache import redis
+from ..cache.redis import redis
 from ..utils.request_utils import requests_retry_session
 
-from ..constants import PRECISION
+from ..constants import PRECISION, CURRENCY_CATALOG
 
 import logging
 logger = logging.getLogger('werkzeug')
@@ -16,30 +16,37 @@ class ConversionError(Exception):
     pass
 
 
+def validate_code_value(code):
+    if code:
+        code = code.upper()
+        try:
+            codes = redis.get('codes').decode().split(',')
+        except:
+            codes = CURRENCY_CATALOG
+
+        if not code in codes:
+            logger.error('Request came in with an invalid code request ({}).'.format(code))
+            raise ValidationError('{} is not a valid code format'.format(code))
+        return code
+    raise ValidationError('No currency code given')
+
+
 # TODO: Write tests for this
-def validate_data(request_body):
-    # Check if
-    # 1. values are set
-    # 2. are the right type
-    currency_code = request_body.get('code', None)
-    requested_amount = request_body.get('amount', None)
+def validate_data(code, amount):
 
-    # set guard for None values
-    if currency_code is None:
-        logger.error('Request came in with an empty value for the code.')
-        raise ValidationError('Code can not be empty.')
+    currency_code = validate_code_value(code)
 
-    if requested_amount is None:
+    if amount is None:
         logger.error('Request came in with an empty value for the amount.')
         raise ValidationError('Amount can not be empty.')
-
     try:
         # Cast the value to the Decimal type
-        requested_amount = Decimal(requested_amount).quantize(PRECISION)
-    except InvalidOperation:
+        requested_amount = Decimal(amount).quantize(PRECISION)
+    except InvalidOperation as err:
         logger.error('Request came in with the wrong type for the amount.')
         raise ValidationError('Amount is not sent in the right format.')
-    return currency_code.upper(), requested_amount
+
+    return currency_code, requested_amount
 
 
 # TODO: Write tests for this
@@ -51,7 +58,7 @@ def get_oxr_price(url=None, code=None):
         logging.error('The OXR url is not set')
         raise ConversionError('URL for the OXR is not set')
 
-    # TODO: Set the catalog into Redis, to read from it???
+    # TODO: Make a cron job (or lambda) to retrieve values in redis and read from there
 
     try:
         response = requests_retry_session().get(url)
@@ -64,8 +71,8 @@ def get_oxr_price(url=None, code=None):
         if response.content:
             content_dict = json.loads(response.content)
             rates = content_dict.get('rates', None)
-            import ipdb;ipdb.set_trace()
-            redis.set('codes', rates.keys())
+            rates_keys = rates.keys()
+            redis.set('codes', ','.join(rates_keys))
 
             if code in rates.keys():
                 return Decimal(rates[code]).quantize(PRECISION, rounding='ROUND_UP')

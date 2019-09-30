@@ -77,8 +77,20 @@ def grab_and_save():
         return converted_data_schema.jsonify(data), HTTPStatus.CREATED
 
 
+
+def get_data(limit, operations, query_filter, redis_key):
+    # Get from Redis
+    redis_raw_data = redis.zrange(redis_key, 0, limit - 1, desc=True)
+    operations['data_from_redis'] = [eval(entry) for entry in redis_raw_data]
+    # Get from MySql
+    db_query = ConvertData.query.order_by(ConvertData.id.desc())
+    filtered_data = db_query.filter_by(**query_filter).limit(limit).all()
+    operations['data_from_mysql'] = [entry.to_dict for entry in filtered_data]
+
+
 @bp.route("/last", methods=['GET'])
 def get_last_record():
+    # TODO: optimize all
     args = request.args
 
     currency = args.get('currency', None)
@@ -90,13 +102,18 @@ def get_last_record():
     limit = 1
     query_filter = {}
 
-    # TODO: optimize all
-    if currency is not None and currency != '':
+    # TODO: Fix edge case when user sends empty value
+    if not currency and not records :
 
+        get_data(limit, operations, query_filter, redis_key)
+
+        return jsonify(operations)
+
+    if currency is not None and currency != '':
         try:
             currency = validate_code_value(currency)
 
-        except (ValidationError, AssertionError) as err:
+        except Exception as err:
             return jsonify(sucess=False,
                            message='{}'.format(err),
                            status=HTTPStatus.BAD_REQUEST.value,
@@ -108,12 +125,9 @@ def get_last_record():
             query_filter = {'currency_code': currency}
 
     if records is not None and records != '':
-
         try:
-
             records = int(records)
             assert records > 0, "Records needs to be an positive number"
-
         except Exception as err:
             return jsonify(sucess=False,
                            message='{}'.format(err),
@@ -124,29 +138,9 @@ def get_last_record():
             operations['params']['operations'] = True
             limit = records
 
-
-    # if currency and records:
-    #     operations['params'] = dict(currency=True, operations=True)
-    #     redis_key = currency
-    #     limit = records
-    #     query_filter = {'currency_code': currency}
-    # if currency:
-    #     operations['params']['currency'] = True
-    #     redis_key = currency
-    #     query_filter = {'currency_code': currency}
-    #
-    # if records:
-    #     operations['params']['operations'] = True
-    #     limit = records
-
-
-    # Get from Redis
-    redis_raw_data = redis.zrange(redis_key, 0, limit - 1, desc=True)
-    operations['data_from_redis'] = [eval(entry) for entry in redis_raw_data]
-
-    # Get from MySql
-    db_query = ConvertData.query.order_by(ConvertData.id.desc())
-    filtered_data = db_query.filter_by(**query_filter).limit(limit).all()
-    operations['data_from_mysql'] = [entry.to_dict for entry in filtered_data]
+    get_data(limit, operations, query_filter, redis_key)
 
     return jsonify(operations)
+
+
+

@@ -41,7 +41,7 @@ def validate_data(code, amount):
         raise ValidationError('Amount can not be empty.')
     try:
         # Cast the value to the Decimal type
-        requested_amount = Decimal(amount).quantize(PRECISION)
+        requested_amount = Decimal(amount)
     except InvalidOperation as err:
         logger.error('Request came in with the wrong type for the amount.')
         raise ValidationError('Amount is not sent in the right format.')

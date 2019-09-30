@@ -27,7 +27,7 @@ COPY poetry.lock pyproject.toml ./
 
 # Project initialization:
 RUN poetry config settings.virtualenvs.create false \
- && poetry update $(test "$ENV" == production && echo "--no-dev") --no-interaction --no-ansi
+ && poetry install $(test "$ENV" == production && echo "--no-dev") --no-interaction --no-ansi
 
 # Making the user and group to application uwsgi
 RUN groupadd -r convert && useradd -r -g convert convert

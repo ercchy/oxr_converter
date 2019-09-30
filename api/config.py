@@ -1,8 +1,10 @@
 import os
 from os.path import abspath, dirname
+from pathlib import Path
+
 
 class Config:
-    __ROOT_PATH = dirname(dirname(abspath(__file__)))
+    __ROOT_PATH = Path(__file__).resolve().parent
     DEBUG = False
     TESTING = False
     SECRET_KEY = os.environ.get('SECRET_KEY')

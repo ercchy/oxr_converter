@@ -23,6 +23,9 @@ ma.init_app(app)
 # Data migrations setup (not sure about this)
 migrate = Migrate(app, db, directory=DevelopmentConfig.MIGRATION_DIR)
 
+# Redis
+redis.init_app(app)
+
 # Blueprint register
 # We added this so we can change the app layout structure
 app.register_blueprint(v1_routes.bp, url_prefix='/api/v1')
@@ -37,7 +40,4 @@ handler = logging.FileHandler('access.log')
 handler.setFormatter(formatter)
 logger = logging.getLogger('werkzeug')
 logger.addHandler(handler)
-# app.logger.addHandler(handler)
-
-# Redis
-redis.init_app(app)
+app.logger.addHandler(handler)

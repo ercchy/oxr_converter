@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-CURRENCY_CALALOG = [
+CURRENCY_CATALOG = [
     "AED",
     "AFN",
     "ALL",

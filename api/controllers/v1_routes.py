@@ -1,5 +1,3 @@
-import simplejson as json
-
 from http import HTTPStatus
 
 from decimal import Decimal
@@ -7,7 +5,7 @@ from flask import Blueprint, request, jsonify
 
 from ..cache.redis import redis
 from ..models.database import db
-from ..models.convert_data import ConvertData, converted_data_schema, converted_datas_schema
+from ..models.convert_data import ConvertData, converted_data_schema
 from ..utils.processors import get_oxr_price, validate_data, ConversionError, validate_code_value, ValidationError
 
 from ..constants import OXR_REQUEST_URL, PRECISION

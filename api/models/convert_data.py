@@ -1,5 +1,4 @@
 from flask import json
-
 from sqlalchemy import func, DateTime
 from sqlalchemy.event import listens_for
 

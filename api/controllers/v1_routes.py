@@ -90,7 +90,7 @@ def get_data(limit, operations, query_filter, redis_key):
 
 @bp.route("/last", methods=['GET'])
 def get_last_record():
-    # TODO: optimize all
+
     args = request.args
 
     currency = args.get('currency', None)
@@ -101,6 +101,8 @@ def get_last_record():
     redis_key = 'operation'
     limit = 1
     query_filter = {}
+
+    # TODO: optimize all
 
     # TODO: Fix edge case when user sends empty value
     if not currency and not records :

@@ -12,7 +12,19 @@ from ..constants import RETRIES
 def requests_retry_session(retries=RETRIES, backoff_factor=0.3,
                            status_forcelist=(500, 502, 504),
                            session=None):
-    # Create the session
+    """
+    The method will try hitting the requested url for how much retries we
+    define in the constants file.
+    Between the retries it will wait for `backoff_factor`, which will exponentially grow
+    with the number of retries.
+
+    :param retries: Defined in the constants
+    :param backoff_factor: A backoff factor to apply between attempts after the second try
+    :param status_forcelist: A set of integer HTTP status codes that we should force a retry on
+    :param session: You can pass an alredy alive session
+    :return: session
+    """
+
     if not session:
         session = requests.Session()
 

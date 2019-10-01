@@ -24,6 +24,8 @@ ipython = "^7.4"
 ipdb = "^0.12.2"
 pytest = "^5.2"
 flake8 = "^3.7"
+fakeredis = "^1.0"
+requests-mock = "^1.7"
 
 [tool.black]
 line-length = 100

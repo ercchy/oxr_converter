@@ -6,27 +6,24 @@ authors = ["Erika Pogorelc <erika@serox.si>"]
 
 [tool.poetry.dependencies]
 python = "^3.7"
+uwsgi = "^2.0.18"
 flask = "^1.1"
 flask-sqlalchemy = "^2.4"
 marshmallow = "^3.2"
 flask-marshmallow = "^0.10.1"
 marshmallow-sqlalchemy = "^0.19."
+flask-migrate = "^"
 requests = "^2.22.0"
 python-dotenv = "^0.10"
-pycountry = "^19.8.18"
 redis = "^3.3.8"
-uwsgi = "^2.0.18"
-flask-migrate = "^"
 flask-redis = "^0.4.0"
-flask-script = "^"
 mysqlclient = "^1.4.2"
-flask_testing = "^0.7.1"
-
-
 
 [tool.poetry.dev-dependencies]
 ipython = "^7.4"
 ipdb = "^0.12.2"
+pytest = "^5.2"
+flake8 = "^3.7"
 
 [tool.black]
 line-length = 100

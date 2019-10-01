@@ -1,4 +1,4 @@
-import json
+from flask import json
 from decimal import Decimal, InvalidOperation
 
 from ..cache.redis import redis

@@ -20,7 +20,7 @@ flask-migrate = "^"
 flask-redis = "^0.4.0"
 flask-script = "^"
 mysqlclient = "^1.4.2"
-simplejson = "^3.16"
+flask_testing = "^0.7.1"
 
 
 

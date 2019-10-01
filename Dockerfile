@@ -22,9 +22,7 @@ WORKDIR /opt/convert
 
 # Installing poetry to manage dependencies
 RUN pip install poetry
-
 COPY poetry.lock pyproject.toml ./
-
 # Project initialization:
 RUN poetry config settings.virtualenvs.create false \
  && poetry install $(test "$ENV" == production && echo "--no-dev") --no-interaction --no-ansi
@@ -34,11 +32,11 @@ RUN groupadd -r convert && useradd -r -g convert convert
 
 USER convert
 
-#Run docker-entrypoint.sh script.
-ENTRYPOINT [ "sh", "docker-entrypoint.sh" ]
+COPY --chown=convert:convert . ./
 
 CMD [ "uwsgi", "--ini", "config/uwsgi/uwsgi.ini"]
 
-COPY --chown=convert:convert . ./
+#Run docker-entrypoint.sh script.
+ENTRYPOINT [ "sh", "docker-entrypoint.sh" ]
 
 EXPOSE 8080
